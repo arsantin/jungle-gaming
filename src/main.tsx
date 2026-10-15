@@ -7,10 +7,19 @@ import './index.css'
 import App from './App.tsx'
 
 async function prepareApp() {
-  if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+  // Enable MSW in development or whenever VITE_ENABLE_MSW is true (or by default if no external backend is configured)
+  const isMockEnabled =
+    import.meta.env.DEV ||
+    import.meta.env.MODE === 'development' ||
+    import.meta.env.VITE_ENABLE_MSW !== 'false'
+
+  if (isMockEnabled) {
     const { worker } = await import('./mocks/browser')
     await worker.start({
       onUnhandledRequest: 'bypass',
+      serviceWorker: {
+        url: '/mockServiceWorker.js',
+      },
     })
   }
 }
