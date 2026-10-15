@@ -15,6 +15,10 @@ export const PromoBanners: React.FC<PromoBannersProps> = ({ onExploreClick }) =>
                         <img
                             src="/assets/image0_2_2.png"
                             alt="Coleção Exclusiva"
+                            width={240}
+                            height={200}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                         />
                     </div>
@@ -46,6 +50,10 @@ export const PromoBanners: React.FC<PromoBannersProps> = ({ onExploreClick }) =>
                         <img
                             src="/assets/image2_2_2.png"
                             alt="Novos Criadores"
+                            width={240}
+                            height={200}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                         />
                     </div>

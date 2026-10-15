@@ -67,7 +67,10 @@ export const NFTCard: React.FC<NFTCardProps> = ({ nft, onSelect }) => {
                 <img
                     src={nft.imageUrl}
                     alt={nft.title}
+                    width={250}
+                    height={250}
                     loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
 

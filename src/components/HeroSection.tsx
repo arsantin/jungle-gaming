@@ -76,6 +76,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                             <img
                                 src={slides[currentSlide].image}
                                 alt={slides[currentSlide].title}
+                                width={450}
+                                height={450}
+                                fetchPriority="high"
+                                decoding="async"
                                 className="w-full h-full object-cover transition-all duration-500 hover:scale-105"
                             />
                         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { HeroSection } from '@/components/HeroSection'
@@ -7,12 +7,6 @@ import { NFTCard } from '@/components/NFTCard'
 import { PromoBanners } from '@/components/PromoBanners'
 import { FeaturedCollections } from '@/components/FeaturedCollections'
 import { ValueProposition } from '@/components/ValueProposition'
-import { NFTDetailView } from '@/components/NFTDetailView'
-import { CartModal } from '@/components/CartModal'
-import { AuthView } from '@/components/AuthView'
-import { CheckoutView } from '@/components/CheckoutView'
-import { OrderConfirmationView } from '@/components/OrderConfirmationView'
-import { ProfileWalletsView } from '@/components/ProfileWalletsView'
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
@@ -20,6 +14,26 @@ import { useNFTs, useFavorites } from '@/hooks/useQueries'
 import { useAuth } from '@/context/useAuth'
 import type { Order } from '@/types'
 import { Layers } from 'lucide-react'
+
+// Lazy-loaded heavy views and modals for optimal initial page load
+const NFTDetailView = lazy(() =>
+  import('@/components/NFTDetailView').then((m) => ({ default: m.NFTDetailView }))
+)
+const CartModal = lazy(() =>
+  import('@/components/CartModal').then((m) => ({ default: m.CartModal }))
+)
+const AuthView = lazy(() =>
+  import('@/components/AuthView').then((m) => ({ default: m.AuthView }))
+)
+const CheckoutView = lazy(() =>
+  import('@/components/CheckoutView').then((m) => ({ default: m.CheckoutView }))
+)
+const OrderConfirmationView = lazy(() =>
+  import('@/components/OrderConfirmationView').then((m) => ({ default: m.OrderConfirmationView }))
+)
+const ProfileWalletsView = lazy(() =>
+  import('@/components/ProfileWalletsView').then((m) => ({ default: m.ProfileWalletsView }))
+)
 
 export const App: React.FC = () => {
   const { user } = useAuth()
@@ -129,242 +143,252 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1">
-        {/* Route: NFT Detail */}
-        {currentRoute.startsWith('#/nft/') && selectedNftId ? (
-          <NFTDetailView
-            nftId={selectedNftId}
-            onBack={() => navigate('/')}
-            onCheckoutDirect={() => {
-              if (!user) {
-                navigate('/login')
-              } else {
-                navigate('/checkout')
-              }
-            }}
-          />
-        ) : currentRoute === '#/checkout' ? (
-          /* Route: Checkout & Payment */
-          <CheckoutView
-            onSuccess={(order) => {
-              setCompletedOrder(order)
-              navigate('/order-confirmation')
-            }}
-            onCancel={() => navigate('/')}
-          />
-        ) : currentRoute === '#/order-confirmation' && completedOrder ? (
-          /* Route: Order Confirmation */
-          <OrderConfirmationView
-            initialOrder={completedOrder}
-            onReturnHome={() => {
-              setCompletedOrder(null)
-              navigate('/')
-            }}
-          />
-        ) : currentRoute === '#/profile' || currentRoute === '#/wallets' ? (
-          /* Route: Profile & Wallets */
-          user ? (
-            <ProfileWalletsView />
-          ) : (
-            <div className="py-20 max-w-md mx-auto text-center px-4">
-              <h2 className="text-xl font-bold mb-2">Sign in Required</h2>
-              <p className="text-xs text-gray-400 mb-6">
-                Please sign in with your collector account to access your profile and wallets.
-              </p>
-              <Button onClick={() => navigate('/login')}>Go to Sign In</Button>
+        <Suspense
+          fallback={
+            <div className="py-24 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-[#D28A4C] border-t-transparent animate-spin" />
             </div>
-          )
-        ) : currentRoute === '#/login' || currentRoute === '#/register' ? (
-          /* Route: Auth Modal / View (1:1 with signup.svg) */
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
-            <AuthView
-              initialMode={currentRoute === '#/register' ? 'register' : 'login'}
-              onSuccess={() => navigate('/')}
-              onCancel={() => navigate('/')}
-              onClose={() => navigate('/')}
-            />
-          </div>
-        ) : currentRoute === '#/favorites' ? (
-          /* Route: Favorites View */
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex items-center gap-3 mb-8">
-              <Layers className="w-6 h-6 text-purple-400" />
-              <div>
-                <h1 className="text-2xl font-bold text-white">Your Saved Favorites</h1>
-                <p className="text-xs text-gray-400">
-                  {favsData?.favorites?.length || 0} artwork(s) saved to your personal collection
-                </p>
-              </div>
-            </div>
-
-            {!favsData?.favorites?.length ? (
-              <div className="py-20 text-center">
-                <p className="text-sm text-gray-400 mb-4">No favorited NFTs yet.</p>
-                <Button size="sm" onClick={() => navigate('/')}>
-                  Discover Artworks
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {favsData.favorites.map((nft) => (
-                  <NFTCard
-                    key={nft.id}
-                    nft={nft}
-                    onSelect={(id) => navigate(`/nft/${id}`)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Route: Home / Catalog - Exact KURIO layout matching home.svg */
-          <div>
-            {/* 1. Hero Section (Y=120) */}
-            <HeroSection
-              featuredNft={featuredNft}
-              onExploreClick={() => {
-                const el = document.getElementById('catalog-section')
-                el?.scrollIntoView({ behavior: 'smooth' })
+          }
+        >
+          {/* Route: NFT Detail */}
+          {currentRoute.startsWith('#/nft/') && selectedNftId ? (
+            <NFTDetailView
+              nftId={selectedNftId}
+              onBack={() => navigate('/')}
+              onCheckoutDirect={() => {
+                if (!user) {
+                  navigate('/login')
+                } else {
+                  navigate('/checkout')
+                }
               }}
-              onNftClick={(id) => navigate(`/nft/${id}`)}
             />
-
-            {/* 2. Catalog Section with Top Tabs + Left Sidebar + 3x3 Grid (Y=810) */}
-            <section
-              id="catalog-section"
-              className="max-w-[1440px] mx-auto px-6 lg:px-16 py-12"
-            >
-              {/* Category Filter Tabs & Search Bar */}
-              <div className="mb-10">
-                <CatalogFilters
-                  filters={filters}
-                  onChange={handleFilterChange}
-                  onReset={handleResetFilters}
-                />
+          ) : currentRoute === '#/checkout' ? (
+            /* Route: Checkout & Payment */
+            <CheckoutView
+              onSuccess={(order) => {
+                setCompletedOrder(order)
+                navigate('/order-confirmation')
+              }}
+              onCancel={() => navigate('/')}
+            />
+          ) : currentRoute === '#/order-confirmation' && completedOrder ? (
+            /* Route: Order Confirmation */
+            <OrderConfirmationView
+              initialOrder={completedOrder}
+              onReturnHome={() => {
+                setCompletedOrder(null)
+                navigate('/')
+              }}
+            />
+          ) : currentRoute === '#/profile' || currentRoute === '#/wallets' ? (
+            /* Route: Profile & Wallets */
+            user ? (
+              <ProfileWalletsView />
+            ) : (
+              <div className="py-20 max-w-md mx-auto text-center px-4">
+                <h2 className="text-xl font-bold mb-2">Sign in Required</h2>
+                <p className="text-xs text-gray-400 mb-6">
+                  Please sign in with your collector account to access your profile and wallets.
+                </p>
+                <Button onClick={() => navigate('/login')}>Go to Sign In</Button>
+              </div>
+            )
+          ) : currentRoute === '#/login' || currentRoute === '#/register' ? (
+            /* Route: Auth Modal / View (1:1 with signup.svg) */
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+              <AuthView
+                initialMode={currentRoute === '#/register' ? 'register' : 'login'}
+                onSuccess={() => navigate('/')}
+                onCancel={() => navigate('/')}
+                onClose={() => navigate('/')}
+              />
+            </div>
+          ) : currentRoute === '#/favorites' ? (
+            /* Route: Favorites View */
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+              <div className="flex items-center gap-3 mb-8">
+                <Layers className="w-6 h-6 text-purple-400" />
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Your Saved Favorites</h1>
+                  <p className="text-xs text-gray-400">
+                    {favsData?.favorites?.length || 0} artwork(s) saved to your personal collection
+                  </p>
+                </div>
               </div>
 
-              {/* 2-Column Catalog Layout: Sidebar (310px) + Grid */}
-              <div className="flex flex-col lg:flex-row items-start gap-8">
-                {/* Left Sidebar Filters */}
-                <div className="w-full lg:w-[310px] shrink-0">
-                  <CatalogSidebar
+              {!favsData?.favorites?.length ? (
+                <div className="py-20 text-center">
+                  <p className="text-sm text-gray-400 mb-4">No favorited NFTs yet.</p>
+                  <Button size="sm" onClick={() => navigate('/')}>
+                    Discover Artworks
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {favsData.favorites.map((nft) => (
+                    <NFTCard
+                      key={nft.id}
+                      nft={nft}
+                      onSelect={(id) => navigate(`/nft/${id}`)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Route: Home / Catalog - Exact KURIO layout matching home.svg */
+            <div>
+              {/* 1. Hero Section (Y=120) */}
+              <HeroSection
+                featuredNft={featuredNft}
+                onExploreClick={() => {
+                  const el = document.getElementById('catalog-section')
+                  el?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                onNftClick={(id) => navigate(`/nft/${id}`)}
+              />
+
+              {/* 2. Catalog Section with Top Tabs + Left Sidebar + 3x3 Grid (Y=810) */}
+              <section
+                id="catalog-section"
+                className="max-w-[1440px] mx-auto px-6 lg:px-16 py-12"
+              >
+                {/* Category Filter Tabs & Search Bar */}
+                <div className="mb-10">
+                  <CatalogFilters
                     filters={filters}
                     onChange={handleFilterChange}
                     onReset={handleResetFilters}
                   />
                 </div>
 
-                {/* Right: 3x3 Card Grid + Pagination */}
-                <div className="flex-1 w-full">
-                  {nftsLoading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {Array.from({ length: 9 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="bg-[#241612] border border-[#3F2319] rounded-[18px] p-4 space-y-4"
-                        >
-                          <Skeleton className="aspect-square w-full rounded-[14px]" />
-                          <Skeleton className="h-5 w-3/4" />
-                          <Skeleton className="h-4 w-1/2" />
-                          <div className="pt-2 flex justify-between items-center">
-                            <Skeleton className="h-6 w-20" />
-                            <Skeleton className="h-8 w-16 rounded-xl" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : !nftsData?.items?.length ? (
-                    <div className="py-20 text-center bg-[#241612] rounded-[18px] border border-[#3F2319]">
-                      <p className="text-base font-bold text-[#F5F1EB] mb-1">Nenhum item encontrado</p>
-                      <p className="text-xs text-[#CFB28C] mb-6 max-w-sm mx-auto">
-                        Tente ajustar a busca ou limpar os filtros para ver todas as artes digitais disponíveis.
-                      </p>
-                      <button
-                        onClick={handleResetFilters}
-                        className="px-4 py-2 bg-[#D28A4C] hover:bg-[#E89B55] text-[#140D0A] font-bold text-xs rounded-[8px] transition-colors"
-                      >
-                        Limpar todos os filtros
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity ${isPlaceholderData ? 'opacity-50' : 'opacity-100'
-                        }`}
-                    >
-                      {nftsData.items.map((nft) => (
-                        <NFTCard
-                          key={nft.id}
-                          nft={nft}
-                          onSelect={(id) => navigate(`/nft/${id}`)}
-                        />
-                      ))}
-                    </div>
-                  )}
+                {/* 2-Column Catalog Layout: Sidebar (310px) + Grid */}
+                <div className="flex flex-col lg:flex-row items-start gap-8">
+                  {/* Left Sidebar Filters */}
+                  <div className="w-full lg:w-[310px] shrink-0">
+                    <CatalogSidebar
+                      filters={filters}
+                      onChange={handleFilterChange}
+                      onReset={handleResetFilters}
+                    />
+                  </div>
 
-                  {/* Pagination controls matching KURIO Portuguese design */}
-                  {nftsData?.pagination && nftsData.pagination.totalPages > 1 && (
-                    <div className="pt-12 flex items-center justify-center gap-2">
-                      <button
-                        disabled={filters.page <= 1}
-                        onClick={() => handleFilterChange({ page: filters.page - 1 })}
-                        className="px-3 py-1.5 rounded-[6px] border border-[#3F2319] text-xs font-semibold text-[#CFB28C] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Anterior
-                      </button>
-
-                      {Array.from({ length: nftsData.pagination.totalPages }).map((_, idx) => {
-                        const pageNum = idx + 1
-                        const isActive = pageNum === filters.page
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => handleFilterChange({ page: pageNum })}
-                            className={`w-8 h-8 rounded-[6px] text-xs font-bold transition-all ${isActive
-                              ? 'bg-[#D28A4C] text-[#140D0A]'
-                              : 'bg-[#241612] border border-[#3F2319] text-[#CFB28C] hover:border-[#D28A4C]'
-                              }`}
+                  {/* Right: 3x3 Card Grid + Pagination */}
+                  <div className="flex-1 w-full">
+                    {nftsLoading ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {Array.from({ length: 9 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="bg-[#241612] border border-[#3F2319] rounded-[18px] p-4 space-y-4"
                           >
-                            {pageNum}
-                          </button>
-                        )
-                      })}
-
-                      <button
-                        disabled={filters.page >= nftsData.pagination.totalPages}
-                        onClick={() => handleFilterChange({ page: filters.page + 1 })}
-                        className="px-3 py-1.5 rounded-[6px] border border-[#3F2319] text-xs font-semibold text-[#CFB28C] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            <Skeleton className="aspect-square w-full rounded-[14px]" />
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                            <div className="pt-2 flex justify-between items-center">
+                              <Skeleton className="h-6 w-20" />
+                              <Skeleton className="h-8 w-16 rounded-xl" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : !nftsData?.items?.length ? (
+                      <div className="py-20 text-center bg-[#241612] rounded-[18px] border border-[#3F2319]">
+                        <p className="text-base font-bold text-[#F5F1EB] mb-1">Nenhum item encontrado</p>
+                        <p className="text-xs text-[#CFB28C] mb-6 max-w-sm mx-auto">
+                          Tente ajustar a busca ou limpar os filtros para ver todas as artes digitais disponíveis.
+                        </p>
+                        <button
+                          onClick={handleResetFilters}
+                          className="px-4 py-2 bg-[#D28A4C] hover:bg-[#E89B55] text-[#140D0A] font-bold text-xs rounded-[8px] transition-colors"
+                        >
+                          Limpar todos os filtros
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity ${isPlaceholderData ? 'opacity-50' : 'opacity-100'
+                          }`}
                       >
-                        Próximo
-                      </button>
-                    </div>
-                  )}
+                        {nftsData.items.map((nft) => (
+                          <NFTCard
+                            key={nft.id}
+                            nft={nft}
+                            onSelect={(id) => navigate(`/nft/${id}`)}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Pagination controls matching KURIO Portuguese design */}
+                    {nftsData?.pagination && nftsData.pagination.totalPages > 1 && (
+                      <div className="pt-12 flex items-center justify-center gap-2">
+                        <button
+                          disabled={filters.page <= 1}
+                          onClick={() => handleFilterChange({ page: filters.page - 1 })}
+                          className="px-3 py-1.5 rounded-[6px] border border-[#3F2319] text-xs font-semibold text-[#CFB28C] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Anterior
+                        </button>
+
+                        {Array.from({ length: nftsData.pagination.totalPages }).map((_, idx) => {
+                          const pageNum = idx + 1
+                          const isActive = pageNum === filters.page
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handleFilterChange({ page: pageNum })}
+                              className={`w-8 h-8 rounded-[6px] text-xs font-bold transition-all ${isActive
+                                ? 'bg-[#D28A4C] text-[#140D0A]'
+                                : 'bg-[#241612] border border-[#3F2319] text-[#CFB28C] hover:border-[#D28A4C]'
+                                }`}
+                            >
+                              {pageNum}
+                            </button>
+                          )
+                        })}
+
+                        <button
+                          disabled={filters.page >= nftsData.pagination.totalPages}
+                          onClick={() => handleFilterChange({ page: filters.page + 1 })}
+                          className="px-3 py-1.5 rounded-[6px] border border-[#3F2319] text-xs font-semibold text-[#CFB28C] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Próximo
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
 
-            {/* 3. Promotional Banners (Y=2116) */}
-            <PromoBanners />
+              {/* 3. Promotional Banners (Y=2116) */}
+              <PromoBanners />
 
-            {/* 4. Featured Collections Carousel (Y=2470) */}
-            <FeaturedCollections />
+              {/* 4. Featured Collections Carousel (Y=2470) */}
+              <FeaturedCollections />
 
-            {/* 5. Value Proposition Pillars & Newsletter Bar (Y=3034) */}
-            <ValueProposition />
-          </div>
-        )}
+              {/* 5. Value Proposition Pillars & Newsletter Bar (Y=3034) */}
+              <ValueProposition />
+            </div>
+          )}
+        </Suspense>
       </main>
 
       {/* Cart Drawer / Modal */}
-      <CartModal
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        onProceedCheckout={() => {
-          if (!user) {
-            navigate('/login')
-          } else {
-            navigate('/checkout')
-          }
-        }}
-      />
+      <Suspense fallback={null}>
+        <CartModal
+          isOpen={cartOpen}
+          onClose={() => setCartOpen(false)}
+          onProceedCheckout={() => {
+            if (!user) {
+              navigate('/login')
+            } else {
+              navigate('/checkout')
+            }
+          }}
+        />
+      </Suspense>
 
       {/* Global Notifications and Toasts */}
       <ToastContainer />
